@@ -1,0 +1,56 @@
+{
+  "cantidad_prueba": 300,
+  "cantidad_estrellas": 50,
+  "exactitud": 0.8833333333333333,
+  "f1_macro": 0.883232207937843,
+  "epoca_modelo": 6,
+  "fuente_sha256": "3b15085a594bcd6fab86df0156f537c8c5e43555ef5363b25fcee1dbb26735cf",
+  "modelo_sha256": "94c58a80ce5adc9d627870bdfc077597e32e894fad0b0e8449eac09a6589ca7a",
+  "conteo_sentimientos": {
+    "negative": 105,
+    "neutral": 104,
+    "positive": 91
+  },
+  "matriz_confusion": [
+    [
+      89,
+      5,
+      6
+    ],
+    [
+      6,
+      92,
+      1
+    ],
+    [
+      10,
+      7,
+      84
+    ]
+  ],
+  "tabla_estrellas": {
+    "negative": {
+      "1": 3,
+      "2": 0,
+      "3": 1,
+      "4": 0,
+      "5": 2
+    },
+    "neutral": {
+      "1": 0,
+      "2": 0,
+      "3": 1,
+      "4": 0,
+      "5": 0
+    },
+    "positive": {
+      "1": 1,
+      "2": 0,
+      "3": 1,
+      "4": 5,
+      "5": 36
+    }
+  },
+  "semilla_estrellas": 42,
+  "prueba_ya_consultada": true
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Analiza el sentimiento de un comentario con el modelo multilingüe del proyecto de Inteligencia Artificial.">
+  <title>Sentimientos · Analizador multilingüe</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <header class="encabezado">
+    <a class="marca" href="{{ url_for('inicio') }}" aria-label="Sentimientos, inicio"><span class="simbolo" aria-hidden="true">S</span> Sentimientos<span class="punto">.</span></a>
+    <span class="etiqueta-proyecto">Proyecto de Inteligencia Artificial</span>
+  </header>
+
+  <main>
+    <section class="introduccion" aria-labelledby="titulo">
+      <p class="sobre-titulo">PROCESAMIENTO DEL LENGUAJE NATURAL</p>
+      <h1 id="titulo">Una opinión.<br><span>Tres formas de sentir.</span></h1>
+      <p class="descripcion">Explora el sentimiento que expresa un comentario: positivo, neutral o negativo. Escribe en español o en otro idioma y consulta la interpretación del modelo.</p>
+    </section>
+
+    <div class="espacio-analisis">
+      <section class="panel formulario" aria-labelledby="titulo-formulario">
+        <div class="titulo-panel"><span class="numero">01</span><h2 id="titulo-formulario">Escribe tu comentario</h2></div>
+        <form method="post" action="{{ url_for('inicio') }}" id="formulario-analisis">
+          <label for="comentario">Comentario para analizar</label>
+          <textarea id="comentario" name="comentario" rows="7" maxlength="{{ maximo_caracteres }}" required aria-describedby="ayuda-texto{% if error %} mensaje-error{% endif %}" {% if error %}aria-invalid="true"{% endif %} placeholder="Por ejemplo: Esta aplicación me ayuda a organizar mis ideas, aunque a veces responde muy lento.">{{ comentario }}</textarea>
+          <div class="ayuda"><span id="ayuda-texto">Hasta 5.000 caracteres.</span><span id="contador">{{ comentario|length }} / 5.000</span></div>
+          {% if error %}<p class="mensaje-error" id="mensaje-error" role="alert">{{ error }}</p>{% endif %}
+          <button type="submit" id="boton-analizar"><span id="texto-boton">Analizar comentario</span><span aria-hidden="true">↗</span></button>
+          <p class="estado-carga" id="estado-carga" role="status" aria-live="polite"></p>
+          <p class="nota-formulario">La primera consulta puede tardar mientras se carga el modelo.</p>
+        </form>
+      </section>
+
+      <section class="panel resultado" aria-labelledby="titulo-resultado" aria-live="polite">
+        <div class="titulo-panel"><span class="numero">02</span><h2 id="titulo-resultado">Interpretación del modelo</h2></div>
+        {% if resultado %}
+          <div class="resultado-contenido {{ resultado.sentimiento }}">
+            <span class="icono-sentimiento" aria-hidden="true">{% if resultado.sentimiento == 'positivo' %}+{% elif resultado.sentimiento == 'negativo' %}−{% else %}≈{% endif %}</span>
+            <p class="rotulo-resultado">SENTIMIENTO DETECTADO</p>
+            <h3>{{ resultado.sentimiento|capitalize }}</h3>
+            <div class="confianza"><span>Confianza de la predicción</span><strong>{{ '%.1f'|format(resultado.confianza * 100) }} %</strong></div>
+            <progress value="{{ resultado.confianza }}" max="1" aria-label="Confianza de la predicción">{{ '%.1f'|format(resultado.confianza * 100) }} %</progress>
+            <p class="nota-confianza">La confianza expresa la puntuación asignada por el modelo a esta predicción. No equivale a su porcentaje de aciertos.</p>
+          </div>
+        {% else %}
+          <div class="sin-resultado">
+            <div class="ondas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <h3>Las palabras tienen matices.</h3>
+            <p>Analiza un comentario para ver aquí su sentimiento y la confianza de la predicción.</p>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+
+    <section class="contexto" aria-label="Cómo interpretar el análisis">
+      <div><span class="sobre-titulo">EL MODELO</span><p>XLM-RoBERTa con una capa clasificadora adaptada a comentarios etiquetados por personas.</p></div>
+      <div><span class="sobre-titulo">SUS LÍMITES</span><p>Puede equivocarse con sarcasmo, opiniones mixtas o algunos idiomas. En textos largos se analiza el inicio, hasta 128 tokens.</p></div>
+    </section>
+    <section class="estadisticas" aria-labelledby="titulo-estadisticas">
+      <p class="sobre-titulo">RESULTADOS DEL PROYECTO</p>
+      <h2 id="titulo-estadisticas">Del comentario individual a los datos.</h2>
+      <p class="descripcion">Estas gráficas muestran muestras guardadas del proyecto. No se actualizan con los comentarios que escribes en el formulario.</p>
+      {% if estadisticas %}
+        <div class="indicadores">
+          <div><strong>{{ estadisticas.cantidad_prueba }}</strong><span>comentarios de prueba</span></div>
+          <div><strong>{{ '%.2f'|format(estadisticas.exactitud * 100) }} %</strong><span>exactitud en esta prueba</span></div>
+          <div><strong>{{ '%.3f'|format(estadisticas.f1_macro) }}</strong><span>F1 macro en esta prueba</span></div>
+        </div>
+        <div class="rejilla-graficas">
+          <figure class="panel grafica">
+            <h3>01 · Distribución de sentimientos</h3>
+            <img src="{{ url_for('static', filename='graficas/distribucion.png') }}" alt="Cantidad de predicciones negativas, neutrales y positivas en los 300 comentarios de prueba." loading="lazy" width="900" height="600">
+            <figcaption>Predicciones del modelo adaptado sobre {{ estadisticas.cantidad_prueba }} comentarios etiquetados. Es la distribución de esta muestra, no de todo el dataset.</figcaption>
+            <details><summary>Ver cantidades</summary><ul>{% for etiqueta, cantidad in estadisticas.conteo_sentimientos.items() %}<li>{{ {'negative': 'Negativo', 'neutral': 'Neutral', 'positive': 'Positivo'}[etiqueta] }}: {{ cantidad }}</li>{% endfor %}</ul></details>
+          </figure>
+          <figure class="panel grafica">
+            <h3>02 · Sentimiento frente a estrellas</h3>
+            <img src="{{ url_for('static', filename='graficas/estrellas.png') }}" alt="Barras apiladas de sentimientos predichos para cada puntuación de una a cinco estrellas." loading="lazy" width="900" height="600">
+            <figcaption>Muestra aleatoria de {{ estadisticas.cantidad_estrellas }} reseñas de chatgpt_reviews.csv, con semilla 42. Las estrellas son valoraciones del usuario; no son etiquetas humanas del sentimiento del texto ni una medida de exactitud.</figcaption>
+          </figure>
+          <figure class="panel grafica grafica-matriz">
+            <div>
+              <h3>03 · Matriz de confusión</h3>
+              <figcaption>Compara las etiquetas humanas con las predicciones en {{ estadisticas.cantidad_prueba }} comentarios. La diagonal muestra aciertos; los demás valores son discrepancias.</figcaption>
+              <p class="nota-confianza">Modelo seleccionado en la época {{ estadisticas.epoca_modelo }} por F1 de validación. Esta prueba ya fue consultada en experimentos anteriores: los resultados son exploratorios.</p>
+              <details><summary>Ver tabla de valores</summary><table><caption>Filas: etiqueta humana. Columnas: predicción.</caption><thead><tr><th scope="col">Humana / Predicha</th><th scope="col">Negativo</th><th scope="col">Neutral</th><th scope="col">Positivo</th></tr></thead><tbody>{% for fila in estadisticas.matriz_confusion %}<tr><th scope="row">{{ ['Negativo', 'Neutral', 'Positivo'][loop.index0] }}</th>{% for valor in fila %}<td>{{ valor }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></details>
+            </div>
+            <img src="{{ url_for('static', filename='graficas/matriz_confusion.png') }}" alt="Matriz de confusión con etiquetas humanas en las filas y sentimientos predichos en las columnas. Los valores también están disponibles en la tabla." loading="lazy" width="900" height="720">
+          </figure>
+        </div>
+      {% else %}
+        <p class="panel">Las gráficas todavía no están disponibles. Puedes seguir analizando comentarios con el formulario.</p>
+      {% endif %}
+    </section>
+  </main>
+  <footer><span>Análisis de sentimientos multilingüe</span><span>PLN · Proyecto académico</span></footer>
+</body>
+</html>
