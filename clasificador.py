@@ -1,4 +1,4 @@
-"""Clasificación con el modelo seleccionado en la sección 12 del notebook.
+"""Clasificación de comentarios con el modelo ONNX INT8 del proyecto.
 
 Ejemplo desde Python:
     resultado = clasificar_comentario("Esta aplicación es muy útil")
@@ -13,9 +13,13 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
+import numpy as np
+
 
 RUTA_MODELO = Path(os.environ.get("MODEL_DIR") or Path(__file__).resolve().parent / "modelo")
+RUTA_ONNX = RUTA_MODELO / "modelo_int8.onnx"
 MAXIMO_TOKENS = 128
+ID_A_ETIQUETA = {0: "negative", 1: "neutral", 2: "positive"}
 SENTIMIENTOS = {
     "negative": "negativo",
     "neutral": "neutral",
@@ -37,45 +41,51 @@ def limpiar_texto(texto):
 
 @lru_cache(maxsize=1)
 def cargar_modelo():
-    """Cargar los archivos locales una vez y reutilizarlos en cada consulta."""
-    if not (RUTA_MODELO / "model.safetensors").is_file():
-        raise FileNotFoundError(
-            f"No se encontró model.safetensors en: {RUTA_MODELO}"
-        )
+    """Cargar el tokenizador y una sesión ONNX para reutilizarla."""
+    if not RUTA_ONNX.is_file():
+        raise FileNotFoundError(f"No se encontró el modelo ONNX en: {RUTA_ONNX}")
 
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
+    import onnxruntime as ort
+    from transformers import AutoTokenizer
 
     tokenizador = AutoTokenizer.from_pretrained(
         str(RUTA_MODELO), local_files_only=True
     )
-    red = AutoModelForSequenceClassification.from_pretrained(
-        str(RUTA_MODELO), local_files_only=True
+    opciones = ort.SessionOptions()
+    opciones.intra_op_num_threads = int(os.environ.get("ONNX_INTRA_OP_THREADS", "2"))
+    opciones.inter_op_num_threads = 1
+    opciones.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+    sesion = ort.InferenceSession(
+        str(RUTA_ONNX),
+        sess_options=opciones,
+        providers=["CPUExecutionProvider"],
     )
-    # La aplicación usa CPU; la GPU se utilizó para el entrenamiento.
-    return pipeline(
-        "sentiment-analysis", model=red, tokenizer=tokenizador, device=-1
-    )
+    return tokenizador, sesion
 
 
 def clasificar_comentario(comentario):
-    """Devolver sentimiento y confianza, sin volver a entrenar la red.
-
-    La confianza está entre 0 y 1 y no equivale a la exactitud del modelo.
-    Los comentarios largos se truncan a 128 tokens, como en la evaluación.
-    """
+    """Devolver sentimiento y confianza sin volver a entrenar la red."""
     texto = limpiar_texto(comentario)
-    modelo = cargar_modelo()
-    prediccion = modelo(
-        texto, truncation=True, max_length=MAXIMO_TOKENS
-    )[0]
-    etiqueta = prediccion["label"].lower()
-    if etiqueta not in SENTIMIENTOS:
-        raise ValueError(f"El modelo devolvió una etiqueta inesperada: {etiqueta}")
+    tokenizador, sesion = cargar_modelo()
+    nombres_entrada = {entrada.name for entrada in sesion.get_inputs()}
+    codificado = tokenizador(
+        texto, truncation=True, max_length=MAXIMO_TOKENS, return_tensors="np"
+    )
+    entradas = {
+        nombre: np.ascontiguousarray(codificado[nombre], dtype=np.int64)
+        for nombre in nombres_entrada
+        if nombre in codificado
+    }
+    logits = sesion.run(None, entradas)[0][0].astype(np.float64)
+    probabilidades = np.exp(logits - np.max(logits))
+    probabilidades /= probabilidades.sum()
 
+    indice = int(np.argmax(probabilidades))
+    etiqueta = ID_A_ETIQUETA[indice]
     return {
         "sentimiento": SENTIMIENTOS[etiqueta],
         "etiqueta_modelo": etiqueta,
-        "confianza": float(prediccion["score"]),
+        "confianza": float(probabilidades[indice]),
     }
 
 

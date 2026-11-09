@@ -1,21 +1,22 @@
 {
   "cantidad_prueba": 300,
   "cantidad_estrellas": 50,
-  "exactitud": 0.8833333333333333,
-  "f1_macro": 0.883232207937843,
+  "exactitud": 0.87,
+  "f1_macro": 0.8698645799478321,
   "epoca_modelo": 6,
+  "tipo_modelo": "ONNX INT8",
   "fuente_sha256": "3b15085a594bcd6fab86df0156f537c8c5e43555ef5363b25fcee1dbb26735cf",
-  "modelo_sha256": "94c58a80ce5adc9d627870bdfc077597e32e894fad0b0e8449eac09a6589ca7a",
+  "modelo_sha256": "165ff9ce7937c15e73abb33b21db59ebbee924bd6fa29c1459bc68e61ecafa62",
   "conteo_sentimientos": {
-    "negative": 105,
-    "neutral": 104,
-    "positive": 91
+    "negative": 99,
+    "neutral": 102,
+    "positive": 99
   },
   "matriz_confusion": [
     [
-      89,
+      83,
       5,
-      6
+      12
     ],
     [
       6,
@@ -24,13 +25,13 @@
     ],
     [
       10,
-      7,
-      84
+      5,
+      86
     ]
   ],
   "tabla_estrellas": {
     "negative": {
-      "1": 3,
+      "1": 2,
       "2": 0,
       "3": 1,
       "4": 0,
@@ -44,7 +45,7 @@
       "5": 0
     },
     "positive": {
-      "1": 1,
+      "1": 2,
       "2": 0,
       "3": 1,
       "4": 5,
