@@ -1,8 +1,5 @@
 """Aplicación web local para el proyecto de análisis de sentimientos."""
 
-import json
-from pathlib import Path
-
 from flask import Flask, render_template, request
 
 from clasificador import clasificar_comentario, limpiar_texto
@@ -11,20 +8,6 @@ from clasificador import clasificar_comentario, limpiar_texto
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 MAXIMO_CARACTERES = 5000
-
-
-@app.context_processor
-def datos_graficas():
-    """Leer solamente el resumen; las gráficas se calculan previamente."""
-    base = Path(__file__).resolve().parent
-    try:
-        resumen = json.loads((base / "resultados_web" / "estadisticas.json").read_text(encoding="utf-8"))
-        for nombre in ["distribucion.png", "estrellas.png", "matriz_confusion.png"]:
-            if not (base / "static" / "graficas" / nombre).is_file():
-                return {"estadisticas": None}
-        return {"estadisticas": resumen}
-    except (OSError, ValueError):
-        return {"estadisticas": None}
 
 
 @app.route("/", methods=["GET", "POST"])
